@@ -1,2 +1,2 @@
-# controller_simulations
+# controller-simulations
 Miscellaneous controller simulations
