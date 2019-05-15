@@ -138,8 +138,8 @@ def Simulate(initial_pose, reference_path, velocity, dt, N):
 		steering_angle = theta_ref[target_index] - current_pose.theta
 
 		# Calculate a correction to the steering angle if the distance from the path becomes too large
-		y0 = y_ref[dist_index] - current_pose.y # Calculate y difference
-		x0 = x_ref[dist_index] - current_pose.x # Calculate x difference
+		y0 = y_ref[target_index] - current_pose.y # Calculate y difference
+		x0 = x_ref[target_index] - current_pose.x # Calculate x difference
 		steer_correct = 0 # initialize the steer correction term
 		if distance_to_path>MIN_DIST_MAX: # if the error is too large
 			steer_correct = current_pose.theta - np.arctan2(y0, x0) # Calculate the correction
