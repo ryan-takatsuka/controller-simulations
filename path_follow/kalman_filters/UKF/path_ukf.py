@@ -119,8 +119,8 @@ for i, u in enumerate(cmds):
 	if i % step == 0:
 		try:
 			ukf.predict(u=u, wheelbase=wheelbase)
-		except:
-			ukf.P = np.matmul(ukf.P, ukf.P.T) # force positive definite
+		except:  # force positive definite matrixs
+			ukf.P = np.matmul(ukf.P, ukf.P.T)
 			ukf.predict(u=u, wheelbase=wheelbase)		
 
 		if i % ellipse_step == 0:
