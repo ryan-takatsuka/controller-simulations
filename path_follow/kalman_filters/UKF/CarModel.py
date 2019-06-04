@@ -45,7 +45,29 @@ class CarPose(object):
 		curvature = np.tan(steering_angle) / L
 
 		return curvature
-		
+
+	def addNoise(self, noise):
+		''' Add some noise to the state variables '''
+
+		self.x = self.x + np.random.randn()*noise[0]
+		self.y = self.y + np.random.randn()*noise[0]
+		self.theta = self.theta + np.random.randn()*noise[0]
+
+		return
+
+	def addRandomDisturbance(self):
+		''' Add a random external disturbance '''
+
+		r = np.random.randn()
+
+		if r > 3:
+			self.y = self.y + 0.5
+			print('test1')
+		if r < -3:
+			self.y = self.y - 0.5
+			print('test2')
+
+		return		
 
 def Step(last_pose, velocity, phi, dt, L):
 

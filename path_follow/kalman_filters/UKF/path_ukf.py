@@ -119,7 +119,7 @@ for i, u in enumerate(cmds):
 	if i % step == 0:
 		try:
 			ukf.predict(u=u, wheelbase=wheelbase)
-		except:  # force positive definite matrixs
+		except:  # force positive definite matrix
 			ukf.P = np.matmul(ukf.P, ukf.P.T)
 			ukf.predict(u=u, wheelbase=wheelbase)		
 
