@@ -1,4 +1,6 @@
 import numpy as np
+import control
+from scipy import signal
 
 class BikeModel:
 	def __init__(self, M, C1, K0, K2, v=1.0):
@@ -24,7 +26,7 @@ class BikeModel:
 		self.A = np.concatenate((self.A,np.concatenate((np.eye(2),np.zeros((2,2))), axis=1))) # A matrix
 
 		self.B = np.concatenate((M_inv,np.zeros((2,2)))) # B matrix
-		self.C = np.array([0,0,1,0]) # C matrix
+		self.C = np.array([1,1,0,0]) # C matrix
 		self.D = np.array([0,0]) # D matrix
 
 	def set_velocity(self, v):
@@ -152,6 +154,28 @@ class BikeModel:
 				stable_index.append(idx)
 
 		return stable_index
+
+	def impulse_response(self, time, impulse):
+		''' Calculate the inpulse reponse with the specified time and
+		input vector '''
+
+		system = control.ss(self.A, self.B, self.C, self.D)
+
+		T, yout = control.impulse_response(system, T=time, input=impulse)
+		return T, yout
+
+	def initial_response(self, time, u, x0=None):
+		''' Calculate the inpulse reponse with the specified time and
+		input vector '''
+
+		system = signal.StateSpace(self.A, self.B, self.C, self.D)
+
+		tout, y, x = signal.lsim(system, u, time, X0=x0)
+
+		print(x.shape)
+
+		return tout, x
+
 
 
 if __name__ == "__main__":
