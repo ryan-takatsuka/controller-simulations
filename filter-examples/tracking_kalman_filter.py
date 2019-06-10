@@ -58,101 +58,203 @@ class myPath:
 
 
 class mySensor:
-	def __init__(self, std):
-		self.std = std
+	def __init__(self, var):
+		''' Initialize the sensor '''
+		self.var = var
 
 	def readSingleValue(self, val):
-		return val + np.random.randn()*self.std
+		''' Read a single value from the sensor '''
+		return val + np.random.randn()*self.var
 
 	def readManyValues(self, vals):
-		''' vals is a list of real data to read with
-		this sensor. '''
+		''' read multiple measurement with the sensor '''
 
-		return vals + np.random.normal(0, self.std, size=(len(vals),))
+		return vals + np.random.normal(0, np.sqrt(self.var), size=(len(vals),))
+
+	def read_derivative(self, z, dt):
+		''' take the numberical derivative of some measurements '''
+
+		dz_dt = np.concatenate((np.array([0]), np.diff(z))) / dt
+		return dz_dt
 
 
-class constantVelocityFilter:
-	def __init__(self, r_std, q_std, dt):
+class standard_cvfilter:
+	def __init__(self, r_var, q_var, dt):
 		''' Initialize the constant velocity model kalman filter '''
 
-		# Create the kalman filter and initialize variables
+		# Create the kalman filter and initialize the variables
 		self.dt = dt
-		self.f = KalmanFilter(dim_x=2, dim_z=1)
-		self.f.F = np.array([[1, dt],
-							 [0, 1]])
-		self.f.H = np.array([[1, 0]])
-		self.f.R *= r_std**2
-		self.f.Q = common.Q_discrete_white_noise(dim=2, dt=dt, var=q_std**2)
+		self.filter = KalmanFilter(dim_x=2, dim_z=1)
+		self.filter.F = np.array([[1, dt],
+								  [0, 1]]) # The A matrix
+		self.filter.H = np.array([[1, 0]]) # The C matrix
+		self.filter.R *= r_var # The measurement noise covariance
 
+		# Set the process noise
+		self.filter.Q = common.Q_discrete_white_noise(dim=2, dt=self.dt, var=q_var)
 
-	def standard_filter(self, measurements):
-		''' Use the standard Kalman filter '''
+	def filter_data(self, measurements):
+		''' Filter the measurement data using this filter '''
 
-		x = []
-		saver = common.Saver(self.f)
+		# Create the saver object to save all internal variables
+		saver = common.Saver(self.filter)
+
+		# Iterate through the measurement values
 		for z in measurements:
-			self.f.predict()
-			self.f.update(z)
-			x.append([self.f.x[0][0], self.f.x[1][0]])
+			self.filter.predict()
+			self.filter.update(z)
 			saver.save()
 
+		saver.to_array() # Convert all keys to arrays
 		return saver
 
 
-	def adaptive_Q_filter(self, measurements, eps_max, Q_scale_factor, q_var=0.1):
+class adaptive_Q_cvfilter:
+	def __init__(self, r_var, q_var, dt, eps_max, Q_scale_factor):
 		''' An adaptive kalman filter that uses an adjustable Q value '''
 
-		# Initialize the process noise again
-		self.f.Q = common.Q_discrete_white_noise(dim=2, dt=self.dt, var=q_var)
+		# Create the kalman filter and initialize variables
+		self.dt = dt
+		self.filter = KalmanFilter(dim_x=2, dim_z=1)
+		self.filter.F = np.array([[1, dt],
+								  [0, 1]]) # The A matrix
+		self.filter.H = np.array([[1, 0]]) # The C matrix
+		self.filter.R *= r_var # The measurement noise covariance
 
-		# Run the filter
-		x = []
-		Q_list = []
+		# Set the process noise covariance
+		self.filter.Q = common.Q_discrete_white_noise(dim=2, dt=self.dt, var=q_var)
+
+		# Set the adaptive filter parameters
+		self.eps_max = eps_max
+		self.Q_scale_factor = Q_scale_factor
+
+	def filter_data(self, measurements):
+		''' Filter the measurement data '''
+
+		# Create the saver object to save all the internal variables
+		saver = common.Saver(self.filter)
+
+		# Iterate through the measurement values
 		count = 0
 		for z in measurements:
-			self.f.predict()
-			self.f.update(z)
-			epss = np.dot(self.f.y.T, np.linalg.inv(self.f.S)).dot(self.f.y)
-			x.append([self.f.x[0][0], self.f.x[1][0]])
+			self.filter.predict()
+			self.filter.update(z)
+			
+			# Calculate the normalized residual
+			epss = np.dot(self.filter.y.T, 
+				np.linalg.inv(self.filter.S)).dot(self.filter.y)
 
-			if epss > eps_max:
-				self.f.Q *= Q_scale_factor
+			# If the normalized residual is too large, adjust the process noise
+			if epss > self.eps_max:
+				self.filter.Q *= self.Q_scale_factor
 				count += 1
 			elif count > 0:
-				self.f.Q /= Q_scale_factor
+				self.filter.Q /= self.Q_scale_factor
 				count -= 1
-			Q_list.append(np.max(self.f.Q))
+			saver.save()
 
-		return np.asarray(x), Q_list
+		saver.to_array()
+		return saver
 
+class zarchan_adaptive_cvfilter:
+	def __init__(self, r_var, q_var, dt, std_scale, Q_scale_factor):
+		''' An adaptive kalman filter that uses an adjustable process
+		covariance '''
 
-	def zarchan_adaptive_filter(self, measurements, std_scale, Q_scale_factor, phi0=1):
-		''' An adaptive kalman filter that uses an adjustable Q value '''
+		# Create the kalman fitler and initialize the variables
+		self.dt = dt
+		self.filter = KalmanFilter(dim_x=2, dim_z=1)
+		self.filter.F = np.array([[1, dt],
+								  [0, 1]]) # The A matrix
+		self.filter.H = np.array([[1, 0]]) # The C matrix
+		self.filter.R *= r_var # the measurement noise covariance
 
-		# Initialize the process noise again
-		phi = phi0
-		self.f.Q = common.Q_discrete_white_noise(dim=2, dt=self.dt, var=phi)
+		# Initialize the process noise
+		self.phi = q_var
+		self.update_Q()
 
-		# Run the filter
-		x = []
-		Q_list = []
+		# Set the adaptive filter parameters
+		self.std_scale = std_scale
+		self.Q_scale_factor = Q_scale_factor
+
+	def update_Q(self):
+		''' Update the process noise covariance '''
+
+		self.filter.Q = common.Q_discrete_white_noise(dim=2, dt=self.dt, var=self.phi)
+
+	def filter_data(self, measurements):
+		''' Filter the measurement data '''
+
+		# Create the saver object to save internal variables
+		saver = common.Saver(self.filter)
+
+		# Iterate through the measurements
 		count = 0
-		std = []
-		saver = common.Saver(self.f)
 		for z in measurements:
-			self.f.predict()
-			self.f.update(z)
-			std.append(np.sqrt(self.f.S[0]))
-			x.append([self.f.x[0][0], self.f.x[1][0]])
+			self.filter.predict()
+			self.filter.update(z)
 
-			if np.abs(self.f.y) > std_scale*std[-1]:
-				phi += Q_scale_factor
-				self.f.Q = common.Q_discrete_white_noise(dim=2, dt=self.dt, var=phi)
+			# Calculate the standard deviation of the noise
+			std = np.sqrt(self.filter.S[0][0])
+
+			# If the residual, update the process noise
+			if np.abs(self.filter.y) > self.std_scale*std:
+				self.phi += self.Q_scale_factor
+				self.update_Q()
 				count += 1
 			elif count > 0:
-				phi -= Q_scale_factor
-				self.f.Q = common.Q_discrete_white_noise(dim=2, dt=self.dt, var=phi)
+				self.phi -= self.Q_scale_factor
+				self.update_Q()
 				count -= 1
-			Q_list.append(np.max(self.f.Q))
+			saver.save()
 
-		return np.asarray(x), Q_list, std		
+		saver.to_array()
+		return saver
+
+
+def saver2array(s_list):
+	''' convert a list of 2d arrays to a single 2d array '''
+
+	return np.squeeze(np.stack(s_list))
+
+
+def calculate_rms(saver, dt):
+	''' Calculate the rms values from the saver '''
+
+	z = saver2array(saver.z)
+	dz_dt = np.concatenate((np.array([0]), np.diff(z))) / dt
+
+
+	return z
+
+def calc_noise(filt, sensor):
+	''' Calculate the rms noise using the specified sensor '''
+
+	# Length of steady state values for noise calc
+	L = 1000
+
+	p = myPath(filt.dt)
+	p.addSineSegment(200, 10, 1)
+	p.addSineSegment(200, 10, 5)
+	p.addLineSegment(1*filt.dt, 0, 0)
+	p.addLineSegment(L, 0, 0)
+	p.smoothData()
+	z = sensor.readManyValues(p.path)
+	dz_dt = sensor.read_derivative(z, filt.dt)
+
+	# Filter the data
+	saver = filt.filter_data(z)
+
+	# Calculate the noise values
+	rms_z = np.sqrt(np.mean(z[-L+100:]**2))
+	rms_z_kal = np.sqrt(np.mean(saver.x[-L+100:,0]**2))
+
+	rms_z_vel = np.sqrt(np.mean(dz_dt[-L:]**2))
+	rms_z_vel_kal = np.sqrt(np.mean(saver.x[-L:,1]**2))
+
+	print('RMS position measurement: ', rms_z)
+	print('RMS position Kalman: ', rms_z_kal)
+	print('RMS velocity measurement: ', rms_z_vel)
+	print('RMS velocity Kalman: ', rms_z_vel_kal)
+
+	return saver

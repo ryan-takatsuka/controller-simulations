@@ -4,56 +4,53 @@ import tracking_kalman_filter as tkf
 import matplotlib.pyplot as plt
 import numpy as np
 
+# general parameters
 dt = 1/125
-r_var = 0.1
+r_var = 0.1**2
 q_var= 10
 
-
 p = tkf.myPath(dt)
-sensor = tkf.mySensor(np.sqrt(r_var))
-cv_filter = tkf.constantVelocityFilter(r_var, q_var, dt)
+sensor = tkf.mySensor(r_var)
+cvfilter = tkf.standard_cvfilter(r_var, q_var, dt)
+adaptive_Q_cvfilter = tkf.adaptive_Q_cvfilter(r_var, 1, dt, 5, 10)
+zarchan_adaptive_cvfilter = tkf.zarchan_adaptive_cvfilter(r_var, 1, dt, 1, 10000)
 
 p.addLineSegment(100, 0, 0)
 p.addLineSegment(100, 0, 10)
 p.addLineSegment(100, 10, 0)
 p.addSineSegment(100, 10, 5)
-p.addLineSegment(1000, 0, 0)
-# p.addLineSegment(200, 0, 0)
-# p.addSineSegment(100, 100, 0.5)
-# p.addSineSegment(100, 100, 5)
-# p.addLineSegment(100, p.path[-1], p.path[-1]-50)
-# p.addLineSegment(100, p.path[-1], 0)
-# p.addLineSegment(500, 0, 0)
+p.addLineSegment(300, 0, 0)
 p.smoothData()
 
 # Create noise in the measurements
 measurements = sensor.readManyValues(p.path)
 
 # Filter the measurement data
-s0 = cv_filter.standard_filter(measurements)
-x1, Q1 = cv_filter.adaptive_Q_filter(measurements, 5, 10)
-x2, Q2, std2 = cv_filter.zarchan_adaptive_filter(measurements, 1, 100000)
+s0 = cvfilter.filter_data(measurements)
+s1 = adaptive_Q_cvfilter.filter_data(measurements)
+s2 = zarchan_adaptive_cvfilter.filter_data(measurements)
 
-print(s0.x)
+print('----- Standard Constant Volume Filter -----')
+tkf.calc_noise(cvfilter, sensor)
+print('\n----- Adaptive Process Noise Filter -----')
+tkf.calc_noise(adaptive_Q_cvfilter, sensor)
+print('\n----- Zarchan Adaptive Filter -----')
+tkf.calc_noise(zarchan_adaptive_cvfilter, sensor)
 
-
-# plt.figure()
-# plt.plot(p.sample, p.path)
-# plt.plot(p.sample, x0[:,0], label='standard')
-# plt.plot(p.sample, x1[:,0], label='adaptive Q')
-# plt.plot(p.sample, x2[:,0], label='Zarchan')
-# plt.scatter(p.sample, measurements, s=3, c='k')
-# plt.legend()
-# # plt.show()
-
-# plt.figure()
-# plt.subplot(2,1,1)
-# plt.plot(p.sample, Q1, label='adaptive Q')
-# plt.subplot(2,1,2)
-# plt.plot(p.sample, Q2, label='Zarchan')
-# plt.legend()
-# # plt.show()
-
-# plt.figure()
-# plt.plot(p.sample, std2)
+plt.figure()
+plt.plot(p.sample, p.path)
+plt.step(p.sample, s0.x[:,0], label='standard')
+plt.step(p.sample, s1.x[:,0], label='adaptive Q')
+plt.step(p.sample, s2.x[:,0], label='Zarchan')
+plt.scatter(p.sample, measurements, s=3, c='k')
+plt.legend()
 # plt.show()
+
+plt.figure()
+plt.subplot(3,1,1)
+plt.plot(p.sample, np.maximum(s0.Q[:,0,0], s0.Q[:,1,1]))
+plt.subplot(3,1,2)
+plt.plot(p.sample, np.maximum(s1.Q[:,0,0], s1.Q[:,1,1]))
+plt.subplot(3,1,3)
+plt.plot(p.sample, np.maximum(s2.Q[:,0,0], s2.Q[:,1,1]))
+plt.show()
