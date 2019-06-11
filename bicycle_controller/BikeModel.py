@@ -16,18 +16,38 @@ class BikeModel:
 
 		# Create the state space model
 		self.calc_state_space_vars()
+		self.continuous_ss()
 
 	def calc_state_space_vars(self):
 		''' Calculate the state space variables '''
 
+		zero_mat = np.zeros((2,2))
+		I_mat = np.eye(2)
+
 		M_inv = np.linalg.inv(self.M) # inverse of the mass matrix
 		K = (self.g*self.K0+self.v**2*self.K2) # overall stiffness matrix
-		self.A = np.concatenate((-self.v*np.dot(M_inv,self.C1), -1*np.dot(M_inv,K)), axis=1)
-		self.A = np.concatenate((self.A,np.concatenate((np.eye(2),np.zeros((2,2))), axis=1))) # A matrix
+		self.A = np.concatenate((-self.v*(M_inv@self.C1), -1*(M_inv@K)), axis=1)
+		self.A = np.concatenate((np.concatenate((zero_mat, I_mat),axis=1),self.A), axis=0) # A matrix
+		self.B = np.concatenate((np.zeros((2,2)),M_inv)) # B matrix
+		self.C = np.array([[0,0,1,0],
+						   [0,0,0,1]]) # C matrix
+		self.D = np.zeros((2,2)) # D matrix
 
-		self.B = np.concatenate((M_inv,np.zeros((2,2)))) # B matrix
-		self.C = np.array([1,1,0,0]) # C matrix
-		self.D = np.array([0,0]) # D matrix
+		# Ignore roll torque input
+		self.B = np.array([self.B[:,1]]).T
+		self.D = np.array([self.D[:,1]]).T
+
+	def update_C(self, C_new):
+		''' Update the C matrix in the state space model '''
+
+		self.C = C_new
+		self.continuous_ss()
+
+	def update_D(self, D_new):
+		''' update the D matrix in the state space model '''
+
+		self.D = D_new
+		self.continuous_ss()
 
 	def set_velocity(self, v):
 		''' set a new velocity for the model '''
@@ -155,26 +175,54 @@ class BikeModel:
 
 		return stable_index
 
-	def impulse_response(self, time, impulse):
-		''' Calculate the inpulse reponse with the specified time and
-		input vector '''
-
-		system = control.ss(self.A, self.B, self.C, self.D)
-
-		T, yout = control.impulse_response(system, T=time, input=impulse)
-		return T, yout
-
-	def initial_response(self, time, u, x0=None):
-		''' Calculate the inpulse reponse with the specified time and
-		input vector '''
+	def continuous_ss(self):
+		''' Create the state space system object '''
 
 		system = signal.StateSpace(self.A, self.B, self.C, self.D)
+		return system
 
+	def discrete_ss(self, dt):
+		''' Convert the continuous system to a discrete system '''
+
+		system = signal.cont2discrete((self.A, self.B, self.C, self.D), dt)
+
+		return system
+
+	def continuous_response(self, time, u, x0=None, system=None):
+		''' Calculate the reponse with the specified time and
+		input vector '''
+
+		if system is None:
+			system = self.continuous_ss()
 		tout, y, x = signal.lsim(system, u, time, X0=x0)
-
-		print(x.shape)
-
 		return tout, x
+
+	def discrete_response(self, time, u, x0=None, dt=1, system=None):
+		''' Calculate the reponse with the specified time and
+		input vector '''
+
+		if system is None:
+			system = self.discrete_ss(dt)
+		tout, y, x = signal.dlsim(system, u, time, x0=x0)
+		return tout, x
+
+	def lqr_controller(self, Q, R, dt=None):
+		''' Design an lqr controller '''
+
+		# print(self.A, self.B, Q, R)
+		K, S, E = control.lqr(self.A, self.B, Q, R)
+		A_k = self.A - np.matmul(self.B, K)
+		B_k = np.zeros(self.B.shape)
+		C_k = self.C
+		D_k = np.zeros(self.D.shape)
+		
+		# If there is a time step specified, the system is discrete
+		if dt is None:
+			system = signal.StateSpace(A_k, B_k, C_k, D_k)
+		else:
+			system = signal.cont2discrete((A_k, B_k, C_k, D_k), dt)
+
+		return system, K
 
 
 

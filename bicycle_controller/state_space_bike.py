@@ -15,21 +15,63 @@ Q_rank_list = [] # a matrix that holds the rank of the observabillity matrices f
 time_vector = np.linspace(0, 10, 10000)
 
 bike = BikeModel(params.M, params.C_1, params.K_0, params.K_2)
+print(bike.A)
+print(bike.B)
+print(bike.C)
+print(bike.D)
 
-u = np.zeros(time_vector.size)
-x0 = np.array([0, 0, 0, np.deg2rad(-20)])
-print(u)
+# Open loop time response with initial steer angle
+u = np.zeros((time_vector.size, 1))
+x0 = np.array([0, np.deg2rad(10), 0, 0])
 plt.figure()
 for index, v in enumerate(velocity):
 	bike.set_velocity(v)
-	# T, yout = bike.impulse_response(time_vector, 0)
-	T, xout = bike.initial_response(time_vector, u, x0=x0)
+	T_c, xout_c = bike.continuous_response(time_vector, u, x0=x0)
+	T_d, xout_d = bike.discrete_response(time_vector, u, x0=x0, dt=0.1)
+	plt.plot(T_c,np.rad2deg(xout_c[:,0]), label=('Velocity: ' + str(v) + ' m/s'))
+plt.ylim([-10, 90])
+plt.legend()
+plt.grid()
+plt.xlabel('Test')
 
-	plt.plot(T,np.rad2deg(xout[:,2]), label=('Velocity: ' + str(v) + ' m/s'))
 
+# Closed loop time response with initial steer angle
+# Q = np.eye(bike.A.shape[0])
+# R = np.eye(bike.D.size)
+# plt.figure()
+# for index, v in enumerate(velocity):
+# 	bike.set_velocity(v)
+# 	system, K = bike.lqr_controller(Q, R, dt=0.1)
+# 	# T_c, xout_c = bike.continuous_response(time_vector, u, x0=x0, system=system)
+# 	T_d, xout_d = bike.discrete_response(time_vector, u, x0=x0, dt=0.1, system=system)
+# 	plt.step(T_d,np.rad2deg(xout_d[:,2]), label=('Velocity: ' + str(v) + ' m/s'))
+# plt.ylim([-10, 90])
+# plt.legend()
+# plt.grid()
+# plt.xlabel('Test')
+
+
+# plt.show()
+
+from controller_design import simulate
+Q = np.eye(bike.A.shape[0])
+R = np.eye(bike.D.shape[1])
+plt.figure()
+velocity = velocity[1:2]
+for index, v in enumerate(velocity):
+	bike.set_velocity(v)
+	system, K = bike.lqr_controller(Q, R, dt=0.1)
+	t, x, u1 = simulate(bike.A, bike.B, bike.C, bike.D, K, u, time_vector, x0=x0, dt=0.1)
+	# T_c, xout_c = bike.continuous_response(time_vector, u, x0=x0, system=system)
+	t_, x_ = bike.discrete_response(time_vector, u, x0=x0, dt=0.1, system=system)
+	plt.step(t,np.rad2deg(x[:,0]), label=('Velocity: ' + str(v) + ' m/s'))
+	plt.step(t_,np.rad2deg(x_[:,0]), label=('Velocity: ' + str(v) + ' m/s'))
 
 plt.ylim([-10, 90])
 plt.legend()
 plt.grid()
 plt.xlabel('Test')
 plt.show()
+
+
+# print((bike.B @ u.T).T)
