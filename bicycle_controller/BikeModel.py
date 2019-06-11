@@ -29,9 +29,10 @@ class BikeModel:
 		self.A = np.concatenate((-self.v*(M_inv@self.C1), -1*(M_inv@K)), axis=1)
 		self.A = np.concatenate((np.concatenate((zero_mat, I_mat),axis=1),self.A), axis=0) # A matrix
 		self.B = np.concatenate((np.zeros((2,2)),M_inv)) # B matrix
-		self.C = np.array([[0,0,1,0],
-						   [0,0,0,1]]) # C matrix
-		self.D = np.zeros((2,2)) # D matrix
+		# self.C = np.array([[0,0,1,0],
+		# 				   [0,0,0,1]]) # C matrix
+		self.C = np.eye(4)
+		self.D = np.zeros((4,2)) # D matrix
 
 		# Ignore roll torque input
 		self.B = np.array([self.B[:,1]]).T
@@ -178,52 +179,32 @@ class BikeModel:
 	def continuous_ss(self):
 		''' Create the state space system object '''
 
-		system = signal.StateSpace(self.A, self.B, self.C, self.D)
-		return system
+		self.sys_c = signal.StateSpace(self.A, self.B, self.C, self.D)
+		return self.sys_c
 
 	def discrete_ss(self, dt):
 		''' Convert the continuous system to a discrete system '''
 
-		system = signal.cont2discrete((self.A, self.B, self.C, self.D), dt)
+		# system = signal.cont2discrete((self.A, self.B, self.C, self.D), dt)
+		self.sys_d = signal.StateSpace(self.A, self.B, self.C, self.D).to_discrete(dt)
 
-		return system
+		return self.sys_d
 
-	def continuous_response(self, time, u, x0=None, system=None):
+	def continuous_response(self, time, u, x0=None):
 		''' Calculate the reponse with the specified time and
 		input vector '''
 
-		if system is None:
-			system = self.continuous_ss()
+		system = self.continuous_ss()
 		tout, y, x = signal.lsim(system, u, time, X0=x0)
 		return tout, x
 
-	def discrete_response(self, time, u, x0=None, dt=1, system=None):
+	def discrete_response(self, time, u, x0=None, dt=1):
 		''' Calculate the reponse with the specified time and
 		input vector '''
 
-		if system is None:
-			system = self.discrete_ss(dt)
+		system = self.discrete_ss(dt)
 		tout, y, x = signal.dlsim(system, u, time, x0=x0)
 		return tout, x
-
-	def lqr_controller(self, Q, R, dt=None):
-		''' Design an lqr controller '''
-
-		# print(self.A, self.B, Q, R)
-		K, S, E = control.lqr(self.A, self.B, Q, R)
-		A_k = self.A - np.matmul(self.B, K)
-		B_k = np.zeros(self.B.shape)
-		C_k = self.C
-		D_k = np.zeros(self.D.shape)
-		
-		# If there is a time step specified, the system is discrete
-		if dt is None:
-			system = signal.StateSpace(A_k, B_k, C_k, D_k)
-		else:
-			system = signal.cont2discrete((A_k, B_k, C_k, D_k), dt)
-
-		return system, K
-
 
 
 if __name__ == "__main__":

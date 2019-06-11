@@ -3,33 +3,33 @@
 
 import math
 
-# --------Input Parameters ---------------#
+
 # general parameters for my Fuji bike
-w = 1.32 # [m]
-c = 0.082 # [m]
-lamda = math.radians(27) # [rad]
+w = 1.0 # [m]
+c = 0.067 # [m]
+lamda = math.radians(18) # [rad]
 g = 9.81 # [m/s/s]
 
 # Rear wheel R
-r_R = 0.25 # [m]
-m_R = 1 # [kg]
+r_R = 0.35 # [m]
+m_R = 2 # [kg]
 I_Rxx = 0.1405/2 # [kg*m^2]
 I_Ryy = 0.28/2 # [kg*m^2]
 
 # Rear Body and frame assembly B
-x_B = 0.3 # [m]
-z_B = -0.58 # [m]
-m_B = 78-5.7 # [kg]
-I_Bxx = 9.2 # [kg*m^2]
-I_Bxz = 2.4 # [kg*m^2]
-I_Byy = 11 # [kg*m^2]
+x_B = 0.4 # [m]
+z_B = -1.2 # [m]
+m_B = 75 # [kg]
+I_Bxx = 3.1 # [kg*m^2]
+I_Bxz = 0.8 # [kg*m^2]
+I_Byy = 3.67 # [kg*m^2]
 I_Bzx = I_Bxz # [kg*m^2]
-I_Bzz = 2.8 # [kg*m^2]
+I_Bzz = 0.93 # [kg*m^2]
 
 # front Handlebar and fork assembly H
-x_H = 1.2 # [m]
-z_H = -0.6 # [m]
-m_H = 5.7 # [kg]
+x_H = 0.9 # [m]
+z_H = -0.7 # [m]
+m_H = 4 # [kg]
 I_Hxx = 0.05892 # [kg*m^2]
 I_Hxz = -0.00756 # [kg*m^2]
 I_Hyy = 0.06 # [kg*m^2]
@@ -37,10 +37,49 @@ I_Hzx = I_Hxz # [kg*m^2]
 I_Hzz = 0.00708 # [kg*m^2]
 
 # Front wheel F
-r_F = 0.25 # [m]
-m_F = 1 # [kg]
-I_Fxx = 0.1405/2 # [kg*m^2]
-I_Fyy = 0.28/2 # [kg*m^2]
+r_F = 0.35 # [m]
+m_F = 2 # [kg]
+I_Fxx = 0.1405 # [kg*m^2]
+I_Fyy = 0.28 # [kg*m^2]
+
+# --------Input Parameters ---------------#
+# # general parameters for my Fuji bike
+# w = 1.32 # [m]
+# c = 0.082 # [m]
+# lamda = math.radians(27) # [rad]
+# g = 9.81 # [m/s/s]
+
+# # Rear wheel R
+# r_R = 0.25 # [m]
+# m_R = 1 # [kg]
+# I_Rxx = 0.1405/2 # [kg*m^2]
+# I_Ryy = 0.28/2 # [kg*m^2]
+
+# # Rear Body and frame assembly B
+# x_B = 0.3 # [m]
+# z_B = -0.58 # [m]
+# m_B = 78-5.7 # [kg]
+# I_Bxx = 9.2 # [kg*m^2]
+# I_Bxz = 2.4 # [kg*m^2]
+# I_Byy = 11 # [kg*m^2]
+# I_Bzx = I_Bxz # [kg*m^2]
+# I_Bzz = 2.8 # [kg*m^2]
+
+# # front Handlebar and fork assembly H
+# x_H = 1.2 # [m]
+# z_H = -0.6 # [m]
+# m_H = 5.7 # [kg]
+# I_Hxx = 0.05892 # [kg*m^2]
+# I_Hxz = -0.00756 # [kg*m^2]
+# I_Hyy = 0.06 # [kg*m^2]
+# I_Hzx = I_Hxz # [kg*m^2]
+# I_Hzz = 0.00708 # [kg*m^2]
+
+# # Front wheel F
+# r_F = 0.25 # [m]
+# m_F = 1 # [kg]
+# I_Fxx = 0.1405/2 # [kg*m^2]
+# I_Fyy = 0.28/2 # [kg*m^2]
 #-----------------------------------------#
 
 # Calculate total mass and center of mass location

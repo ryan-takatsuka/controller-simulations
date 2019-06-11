@@ -24,7 +24,7 @@ print(bike.C)
 print(bike.D)
 
 # Open loop time response with initial steer angle
-u = np.zeros((time_vector.size, 1))
+u = np.zeros((time_vector.size, 2))
 x0 = np.array([np.deg2rad(6), 0, 0, 0])
 plt.figure()
 for index, v in enumerate(velocity):
@@ -37,11 +37,11 @@ plt.legend()
 plt.grid()
 plt.xlabel('Test')
 
-# ----------------------------------------------------------------------
+
+
 # Closed loop time response with initial steer angle
-# LQR Control
-u = np.zeros((time_vector.size, 1))
-Q = np.eye(bike.A.shape[0])*0.001
+u = np.zeros((time_vector.size, 2))
+Q = np.eye(bike.A.shape[0])*0
 R = np.eye(bike.D.shape[1])
 dt = 0.1
 
@@ -49,6 +49,10 @@ control_plot = []
 state_plot = []
 for index, v in enumerate(velocity):
 	bike.set_velocity(v)
+	# K, S, E = control.lqr(sys.A, sys.B, Q, R)
+	# sys_cl = signal.StateSpace((sys.A - sys.B@K), sys.B, sys.C, sys.D).to_discrete(dt)
+	# tout, y, x = signal.lsim(sys_cl, u, time_vector, X0=x0)
+
 	# sys = bike.discrete_ss(dt)
 	# K, S, E = controller_design.dlqr(sys.A, sys.B, Q, R)
 	# sys_cl = signal.StateSpace((sys.A - sys.B@K), sys.B, sys.C, sys.D, dt=dt)
@@ -56,6 +60,7 @@ for index, v in enumerate(velocity):
 
 	sys = bike.discrete_ss(dt)
 	K, S, E = controller_design.dlqr(sys.A, sys.B, Q, R)
+	print(sys)
 	s = signal.StateSpace(sys.A, sys.B, sys.C, sys.D, dt=dt)
 	time, states, control_input = controller_design.simulate_discrete(s.A, s.B, s.C, s.D, dt, K, np.zeros(100), x0=x0)
 	control_plot.append((time, control_input, v))
@@ -79,47 +84,5 @@ plt.xlabel('Time [sec]')
 plt.ylabel('Steering Torque [Nm]')
 
 
-# -----------------------------------------------------------
-# Closed loop time response with initial steer angle
-# pole placement
-u = np.zeros((time_vector.size, 1))
-Q = np.eye(bike.A.shape[0])*0.001
-R = np.eye(bike.D.shape[1])
-dt = 0.1
-
-state_plot = []
-control_plot = []
-for index, v in enumerate(velocity):
-	bike.set_velocity(v)
-	# sys = bike.discrete_ss(dt)
-	# K, S, E = controller_design.dlqr(sys.A, sys.B, Q, R)
-	# sys_cl = signal.StateSpace((sys.A - sys.B@K), sys.B, sys.C, sys.D, dt=dt)
-	# tout, y, x = signal.dlsim(sys_cl, np.zeros(1000), x0=x0)
-
-	sys = bike.continuous_ss()
-	poles = controller_design.calc_poles(5, 0.2, 4)
-	K = signal.place_poles(sys.A, sys.B, poles)
-	K = K.gain_matrix
-	sys_cl = signal.StateSpace((sys.A - sys.B@K), sys.B, sys.C, sys.D)
-	tout, y, states = signal.lsim(sys_cl, np.zeros(1000), time_vector, X0=x0)
-	state_plot.append((tout, states, v))
-	control_plot.append((tout, -K@states.T, v))
-
-
-plt.figure()
-for plot in state_plot:
-	plt.step(plot[0], np.rad2deg(plot[1][:,0]), label=('Velocity: ' + str(plot[2]) + ' m/s'))
-plt.legend()
-plt.grid()
-plt.xlabel('Time [sec]')
-plt.ylabel('Roll angle [deg]')
-
-plt.figure()
-for plot in control_plot:
-	plt.step(plot[0], plot[1][0], label=('Velocity: ' + str(plot[2]) + ' m/s'))
-plt.legend()
-plt.grid()
-plt.xlabel('Time [sec]')
-plt.ylabel('Steering Torque [Nm]')
 
 plt.show()
