@@ -1,6 +1,5 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib import patches
 import bike_parameters as params
 from BikeModel import BikeModel
 import control
@@ -10,11 +9,11 @@ import controller_design
 # Set debuggin print options to fit entire matrices
 np.set_printoptions(suppress=True, linewidth=200)
 
-velocity = np.array([0.5,3,7,11]) # velocity range vector
-real_eigs_list = [] # a matrix that holds the real part of the eigenvalues for each velocity
-imag_eigs_list = [] # a matrix that holds the imaginary part of the eigenvalues for each velocity
-P_rank_list = [] # a matrix that holds the rank of the controllabilty matrices for each velocity
-Q_rank_list = [] # a matrix that holds the rank of the observabillity matrices for each velocity
+velocity = np.array([0.5, 3, 7, 11])  # velocity range vector
+real_eigs_list = []  # a matrix that holds the real part of the eigenvalues for each velocity
+imag_eigs_list = []  # a matrix that holds the imaginary part of the eigenvalues for each velocity
+P_rank_list = []  # a matrix that holds the rank of the controllabilty matrices for each velocity
+Q_rank_list = []  # a matrix that holds the rank of the observabillity matrices for each velocity
 time_vector = np.linspace(0, 30, 10000)
 
 bike = BikeModel(params.M, params.C_1, params.K_0, params.K_2)
@@ -32,17 +31,19 @@ for index, v in enumerate(velocity):
 	T_c, xout_c = bike.continuous_response(time_vector, u, x0=x0)
 	T_d, xout_d = bike.discrete_response(time_vector, u, x0=x0, dt=0.1)
 	plt.plot(T_c,np.rad2deg(xout_c[:,0]), label=('Velocity: ' + str(v) + ' m/s'))
-plt.ylim([-10, 90])
+plt.ylim([-90, 90])
 plt.legend()
 plt.grid()
-plt.xlabel('Test')
+plt.ylabel('Roll Angle [deg]')
+plt.xlabel('Time [sec]')
+plt.title('Open Loop Response')
 
 # ----------------------------------------------------------------------
 # Closed loop time response with initial steer angle
 # LQR Control
 u = np.zeros((time_vector.size, 1))
-Q = np.eye(bike.A.shape[0])*0.001
-R = np.eye(bike.D.shape[1])
+Q = np.eye(bike.A.shape[0]) * 1
+R = np.eye(bike.D.shape[1]) * 0.00000001
 dt = 0.1
 
 control_plot = []
@@ -69,6 +70,7 @@ plt.legend()
 plt.grid()
 plt.xlabel('Time [sec]')
 plt.ylabel('Roll angle [deg]')
+plt.title('LQR Controller: States')
 
 plt.figure()
 for plot in control_plot:
@@ -77,7 +79,7 @@ plt.legend()
 plt.grid()
 plt.xlabel('Time [sec]')
 plt.ylabel('Steering Torque [Nm]')
-
+plt.title('LQR Controller: Control Input')
 
 # -----------------------------------------------------------
 # Closed loop time response with initial steer angle
@@ -113,6 +115,7 @@ plt.legend()
 plt.grid()
 plt.xlabel('Time [sec]')
 plt.ylabel('Roll angle [deg]')
+plt.title('Pole Placement: States')
 
 plt.figure()
 for plot in control_plot:
@@ -121,5 +124,6 @@ plt.legend()
 plt.grid()
 plt.xlabel('Time [sec]')
 plt.ylabel('Steering Torque [Nm]')
+plt.title('Pole Placement: Control Input')
 
 plt.show()
