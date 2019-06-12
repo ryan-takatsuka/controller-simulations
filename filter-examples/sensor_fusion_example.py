@@ -22,9 +22,9 @@ path = 10*np.sin(0.1 * 2*np.pi*time)
 # Create sensor measurements of the path
 sensor1 = Sensor(sensor1_var, sensor1_rate)
 sensor2 = Sensor(sensor2_var, sensor2_rate)
-sensor1_time, sensor1_z = sensor1.read(path, time)
+sensor1.read(path, time)
 sensor1.add_distortion(0.5, 0.7)
-sensor2_time, sensor2_z = sensor2.read(path, time)
+sensor2.read(path, time)
 
 # Create the filter
 kf = KalmanFilter(dim_x=2, dim_z=2)
@@ -45,9 +45,9 @@ count_R = 0
 count_Q = 0
 eps_max = 3
 Q_scale_factor = 10
-for idx in range(len(sensor1_z)):
-	z = np.array([[sensor1_z[idx]],
-				  [sensor2_z[idx]]])
+for idx in range(len(sensor1.measurements)):
+	z = np.array([[sensor1.measurements[idx]],
+				  [sensor2.measurements[idx]]])
 
 	kf.predict()
 	kf.update(z)
@@ -72,27 +72,25 @@ for idx in range(len(sensor1_z)):
 		count_Q -= 1
 
 
-	print(kf.R)
+	# print(kf.R)
 
 
 saver.to_array()
 
-
-
 plt.figure()
 plt.plot(time, path)
-plt.scatter(sensor1_time, sensor1_z, s=5, c='k')
-plt.scatter(sensor2_time, sensor2_z, s=5, c='r')
-plt.plot(sensor1_time, saver.x[:,0])
-# plt.show()
-
-plt.figure()
-plt.subplot(2,1,1)
-plt.plot(sensor1_time, saver.y[:,0,0])
-plt.subplot(2,1,2)
-plt.plot(sensor1_time, saver.y[:,1,0])
-# plt.show()
-
-plt.figure()
-plt.plot(r2)
+plt.scatter(sensor1.time, sensor1.measurements, s=5, c='k')
+plt.scatter(sensor2.time, sensor2.measurements, s=5, c='r')
+plt.plot(sensor1.time, saver.x[:,0])
 plt.show()
+
+# plt.figure()
+# plt.subplot(2,1,1)
+# plt.plot(sensor1_time, saver.y[:,0,0])
+# plt.subplot(2,1,2)
+# plt.plot(sensor1_time, saver.y[:,1,0])
+# # plt.show()
+
+# plt.figure()
+# plt.plot(r2)
+# plt.show()

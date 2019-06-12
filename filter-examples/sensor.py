@@ -56,7 +56,7 @@ class Sensor:
 			b, a = signal.butter(2, 0.08, 'low') # lowpass filter design
 
 		# Filter the data
-		self.measurements = signal.lfilter(b, a, self.measurements)
+		return signal.filtfilt(b, a, self.measurements)
 
 
 if __name__ == "__main__":
