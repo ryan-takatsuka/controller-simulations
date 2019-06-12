@@ -92,73 +92,82 @@ class BikeModel:
 		real_eigs = np.asarray(real_eigs_list)
 		imag_eigs = np.asarray(imag_eigs_list)
 
-		# Calculate the crossover points for the eigenvalues
-		min_val = 1e-2 # threshold for determining if values are equal
-		FIRST_CROSS = False # flag for the first crossover
-		SECOND_CROSS = False # flag fort the second crossover
-		cross_index = [] # initial crossover index list
-		for idx, eigs in enumerate(real_eigs_list):
-			eigs = np.sort(eigs)
-			eigs_diff = np.sort(np.abs(np.diff(eigs)))
-			eigs_diff_index = np.argsort(np.abs(np.diff(eigs)))
-			if eigs_diff[0] < min_val and not FIRST_CROSS:
-				cross_index.append([idx, eigs[eigs_diff_index[0]]])
-				FIRST_CROSS = True
-			if FIRST_CROSS and not SECOND_CROSS and eigs_diff[0]<min_val and eigs_diff[1]<min_val:
-				cross_index.append([idx, eigs[eigs_diff_index[0]]])
-				SECOND_CROSS = True
+		# Initialize the arrays for the eigenvalues
+		real_eigs_array = np.asarray(real_eigs_list)
+		imag_eigs_array = np.asarray(imag_eigs_list)
 
-		print(cross_index)
+		eig1_real = [real_eigs_array[0,0]]
+		eig2_real = [real_eigs_array[0,1]]
+		eig3_real = [real_eigs_array[0,2]]
+		eig4_real = [real_eigs_array[0,3]]
 
-		# Sort the real eigenvalues to track each individual value
-		new_real_eigs = np.zeros(real_eigs.shape)
-		for idx, eigs in enumerate(real_eigs_list):
-			for lam in eigs:
-				if idx < cross_index[0][0]: # section before first crossover
-					if lam >= cross_index[0][1]:
-						new_real_eigs[idx,0] = lam
-					if lam <= cross_index[0][1] and lam > 0:
-						new_real_eigs[idx,1] = lam
-					if lam <= 0 and lam >= np.min(real_eigs[0,:]):
-						new_real_eigs[idx,2] = lam
-					if lam <= np.min(real_eigs[0,:]):
-						new_real_eigs[idx,3] = lam
-				if idx >= cross_index[0][0] and idx < cross_index[1][0]: # middle section
-					if lam >= cross_index[1][1]:
-						new_real_eigs[idx,0] = lam
-						new_real_eigs[idx,1] = lam
-					if lam <= 0 and lam >= np.min(real_eigs[0,:]):
-						new_real_eigs[idx,2] = lam
-					if lam <= np.min(real_eigs[0,:]):
-						new_real_eigs[idx,3] = lam
-				if idx >= cross_index[1][0]: # final section
-					if lam < cross_index[1][1] and lam > new_real_eigs[cross_index[1][0],3]:
-						new_real_eigs[idx,0] = lam
-						new_real_eigs[idx,1] = lam
-					if lam >= cross_index[1][1]:
-						new_real_eigs[idx,2] = lam
-					if lam <= new_real_eigs[cross_index[1][0],3]:
-						new_real_eigs[idx,3] = lam
+		eigs_imag_sorted = np.zeros(imag_eigs_array.shape)
+		eigs_imag_sorted[:,0] = imag_eigs_array[:,0]
 
-		# Sort the imaginary eigenvalues
-		new_imag_eigs = np.zeros(imag_eigs.shape)
-		for idx, eigs in enumerate(imag_eigs_list):
-			for lam in eigs:
-				if idx < cross_index[0][0]:
-					new_imag_eigs[idx,0] = lam
-					new_imag_eigs[idx,1] = lam
-					new_imag_eigs[idx,2] = lam
-					new_imag_eigs[idx,3] = lam
-				if idx >= cross_index[0][0]:
-					if lam > min_val:
-						new_imag_eigs[idx,0] = lam
-					if lam < -min_val:
-						new_imag_eigs[idx,1] = lam
-					if lam > -min_val and lam < min_val:
-						new_imag_eigs[idx,2] = lam
-						new_imag_eigs[idx,3] = lam
+		eigs_guess = np.zeros((4,4))
+		diff_eigs = np.zeros((4,4))
 
-		return new_real_eigs, new_imag_eigs, cross_index
+		# Interate through and calculate the sorted eigenvalues
+		for idx, eigs in enumerate(real_eigs_array[1:,:]):
+			idx = idx+1
+			eigs_sort_real = np.sort(eigs)
+			eigs_sort_index = np.argsort(eigs)
+
+			eigs_guess[0,:] = (eigs-eig1_real[-1]) + eigs
+			eigs_guess[1,:] = (eigs-eig2_real[-1]) + eigs
+			eigs_guess[2,:] = (eigs-eig3_real[-1]) + eigs
+			eigs_guess[3,:] = (eigs-eig4_real[-1]) + eigs
+
+			# Eigenvalue number 1
+			error = (eigs - eig1_real[-1])**2
+			eig_prev_index = np.argmin(error)
+			eig1_real.append(eigs[eig_prev_index])
+			# eigs_imag_sorted[idx,0] = imag_eigs_array[idx,eig_prev_index]
+			eigs_imag_sorted[idx,0] = 0 # should be zero
+
+			# Eigenvalue number 2
+			error = (eigs - eig2_real[-1])**2
+			error_guess = (eigs_guess - eig2_real[-1])**2
+			eig_guess_index = np.mod(np.argmin(error_guess), 4)
+			eig_prev_index = np.argmin(error)
+			eig_index = eig_prev_index
+			error_sort = np.sort(error)
+			if np.abs(error_sort[0]-error_sort[1]) < 0.01:
+				eig_index = eig_guess_index		
+			eig2_real.append(eigs[eig_index])
+			eigs_imag_sorted[idx,1] = imag_eigs_array[idx,eig_index] # should be zero
+			eigs_imag_sorted[idx,1] = 0 # should be zero
+
+			# Eigenvalue number 3
+			error = (eigs - eig3_real[-1])**2
+			error_guess = (eigs_guess - eig3_real[-1])**2
+			eig_guess_index = np.mod(np.argmin(error_guess), 4)
+			eig_prev_index = np.argmin(error)
+			if np.min(np.diff(eigs_sort_real)) < 0.0001:
+				eig_index = np.argmin(np.diff(eigs_sort_real))
+				eig3_real.append(eigs[eigs_sort_index[eig_index]])
+				eigs_imag_sorted[idx,2] = imag_eigs_array[idx,eigs_sort_index[eig_index]]
+			else:
+				eig3_real.append(eigs[eigs_sort_index[eig_index]])
+				eigs_imag_sorted[idx,2] = imag_eigs_array[idx,eig_prev_index]
+
+
+			# Eigenvalue number 4
+			error = (eigs - eig4_real[-1])**2
+			eig_prev_index = np.argmin(error)
+			error_sort = np.sort(error)
+			if np.min(np.diff(eigs_sort_real)) < 0.0001:
+				eig_index = np.argmin(np.diff(eigs_sort_real))
+				eig4_real.append(eigs_sort_real[eig_index])
+				eigs_imag_sorted[idx,3] = -imag_eigs_array[idx,eigs_sort_index[eig_index]]
+			else:
+				eig4_real.append(eigs[eig_prev_index])
+				eigs_imag_sorted[idx,3] = imag_eigs_array[idx,eig_prev_index]
+
+
+		eigs_real_sorted = np.asarray([eig1_real, eig2_real, eig3_real, eig4_real]).T
+
+		return eigs_real_sorted, eigs_imag_sorted
 
 	def calc_stable_range(self, real_eigs):
 		''' Calculate the stable velocity range where the real components
