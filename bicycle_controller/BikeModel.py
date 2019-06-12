@@ -26,8 +26,8 @@ class BikeModel:
 
 		M_inv = np.linalg.inv(self.M) # inverse of the mass matrix
 		K = (self.g*self.K0+self.v**2*self.K2) # overall stiffness matrix
-		self.A = np.concatenate((-self.v*(M_inv@self.C1), -1*(M_inv@K)), axis=1)
-		self.A = np.concatenate((np.concatenate((zero_mat, I_mat),axis=1),self.A), axis=0) # A matrix
+		self.A = np.concatenate((-1*(M_inv@K), -self.v*(M_inv@self.C1)), axis=1)
+		self.A = np.concatenate((np.concatenate((zero_mat, I_mat),axis=1),self.A), axis=0) # A matrix		
 		self.B = np.concatenate((np.zeros((2,2)),M_inv)) # B matrix
 		# self.C = np.array([[0,0,1,0],
 		# 				   [0,0,0,1]]) # C matrix
@@ -93,7 +93,7 @@ class BikeModel:
 		imag_eigs = np.asarray(imag_eigs_list)
 
 		# Calculate the crossover points for the eigenvalues
-		min_val = 1e-3 # threshold for determining if values are equal
+		min_val = 1e-2 # threshold for determining if values are equal
 		FIRST_CROSS = False # flag for the first crossover
 		SECOND_CROSS = False # flag fort the second crossover
 		cross_index = [] # initial crossover index list

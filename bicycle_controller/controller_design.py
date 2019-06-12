@@ -4,21 +4,45 @@ import numpy as np
 import scipy
 
 
-def simulate(A, B, C, D, K, dt, time, x0=None):
+def rk4(f, x0, y0, x1, n):
+	vx = [0] * (n + 1)
+	vy = [0] * (n + 1)
+	h = (x1 - x0) / float(n)
+	vx[0] = x = x0
+	vy[0] = y = y0
+	for i in range(1, n + 1):
+		k1 = h * f(x, y)
+		k2 = h * f(x + 0.5 * h, y + 0.5 * k1)
+		k3 = h * f(x + 0.5 * h, y + 0.5 * k2)
+		k4 = h * f(x + h, y + k3)
+		vx[i] = x = x0 + i * h
+		vy[i] = y = y + (k1 + k2 + k2 + k3 + k3 + k4) / 6
+	return vx, vy
+ 
+def f(A, B, C, D, K):
+	return x * sqrt(y)
+
+def simulate(A, B, C, D, K, dt, time, noise=0, x0=None):
 	''' Simulate a continuous system with discrete sensors and controller '''
 
-	time_new = np.arange(0, time[-1], dt)
+	sensor_time = [0]
 	states = [x0]
 	measurements = [x0]
-	u = -K@measurements[-1]
-	for idx, t in enumerate(time_new[1:]):
-		u = -K@measurements[-1]
-		states.append(A@states[-1] + np.dot(B, u))
-		measurements.append(states[-1] + np.random.randn()*1e-3)
+	control_input = [-K@measurements[-1]]
+	for idx, t in enumerate(time[1:]):
+		states_dot = A@states[-1] + np.dot(B, control_input[-1])
+		states.append(states[-1] + states_dot*(t-time[idx]))
+
+		if (t-sensor_time[-1])>=dt:
+			measurements.append(states[-1] + np.random.randn()*noise)
+			control_input.append(-K@measurements[-1])
+			sensor_time.append(t)
+
 
 	states = np.asarray(states)
 	measurements = np.asarray(measurements)
-	return time_new, states, measurements
+	control_input = np.squeeze(np.asarray(control_input))
+	return time, states, sensor_time, measurements, control_input
 
 
 
