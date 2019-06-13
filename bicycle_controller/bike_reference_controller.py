@@ -8,6 +8,7 @@ from scipy import signal
 import controller_design
 from sensor import Sensor
 from filterpy import common
+import bike_parameters
 
 # Set debuggin print options to fit entire matrices
 np.set_printoptions(suppress=True, linewidth=200)
@@ -44,16 +45,37 @@ time_vector = np.linspace(0, 10, 10000)  # time vector for sim
 u = np.zeros(time_vector.size) # control input
 # sys_sim = signal.StateSpace((sys.A-sys.B*K), sys.B, sys.C, sys.D, dt=dt)
 
-x_ref = np.array([np.deg2rad(6), 0, 0, 0])
+# Create reference signal
+yaw_rate_ref = np.deg2rad(1)
+steering_angle_ref = yaw_rate_ref * bike_parameters.w / velocity / np.cos(bike_parameters.lamda)
+x_ref = np.array([0, steering_angle_ref, 0, 0])
 time, states, sensor_time, measurements, control_input = controller_design.simulate(sys.A, sys.B, sys.C, sys.D, K, dt, time_vector, x_ref=x_ref)
+print(np.rad2deg(steering_angle_ref))
 
+yaw_rate = velocity / bike_parameters.w * states[:,1] * np.cos(bike_parameters.lamda)
+plt.figure()
+plt.plot(time, np.rad2deg(yaw_rate))
+plt.plot(sensor_time, np.ones(len(sensor_time)), 'r--')
+plt.grid()
+plt.xlabel('Time [sec]')
+plt.ylabel('Angular Velocity [deg/sec]')
+plt.title('Yaw rate')
+
+plt.figure()
+plt.plot(sensor_time, control_input)
+plt.grid()
+plt.xlabel('Time [sec]')
+plt.ylabel('Steering Torque [N-m]')
+plt.title('Control Input')
+# plt.show()
 
 plt.figure()
 plt.plot(time, np.rad2deg(states[:,0]))
+plt.grid()
+plt.xlabel('Time [sec]')
+plt.ylabel('Steering Torque [N-m]')
+plt.title('Control Input')
 plt.show()
-
-
-
 
 
 # # ----------------------------------------------------------------------

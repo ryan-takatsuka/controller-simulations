@@ -14,7 +14,7 @@ real_eigs_list = []  # a matrix that holds the real part of the eigenvalues for 
 imag_eigs_list = []  # a matrix that holds the imaginary part of the eigenvalues for each velocity
 P_rank_list = []  # a matrix that holds the rank of the controllabilty matrices for each velocity
 Q_rank_list = []  # a matrix that holds the rank of the observabillity matrices for each velocity
-time_vector = np.linspace(0, 30, 10000)
+time_vector = np.linspace(0, 10, 10000)
 
 bike = BikeModel(params.M, params.C_1, params.K_0, params.K_2)
 print(bike.A)
@@ -43,11 +43,12 @@ plt.title('Open Loop Response')
 # LQR Control
 u = np.zeros((time_vector.size, 1))
 Q = np.eye(bike.A.shape[0]) * 1
-R = np.eye(bike.D.shape[1]) * 0.00000001
+R = np.eye(bike.D.shape[1]) * 0.0001
 dt = 0.1
 
 control_plot = []
 state_plot = []
+velocity = [10]
 for index, v in enumerate(velocity):
 	bike.set_velocity(v)
 	# sys = bike.discrete_ss(dt)
@@ -64,18 +65,23 @@ for index, v in enumerate(velocity):
 
 
 plt.figure()
-for plot in state_plot:
-	plt.step(plot[0], np.rad2deg(plot[1][:,0]), label=('Velocity: ' + str(plot[2]) + ' m/s'))
-plt.legend()
-plt.grid()
-plt.xlabel('Time [sec]')
-plt.ylabel('Roll angle [deg]')
-plt.title('LQR Controller: States')
+ylabels = ['Angle [deg]', 'Angle [deg]', 'Angular Rate [deg/s]', 'Angular Rate [deg/s]']
+titles = ['Roll Angle', 'Steer Angle', 'Roll Rate', 'Steer Rate']
+for i in range(4):
+	plt.subplot(2,2,i+1)
+	for plot in state_plot:
+		plt.step(plot[0], np.rad2deg(plot[1][:,i]), label=('Velocity: ' + str(plot[2]) + ' m/s'))
+	# plt.legend()
+	plt.grid()
+	if i==2 or i==3:
+		plt.xlabel('Time [sec]')
+	plt.ylabel(ylabels[i])
+	plt.title(('Pole Placement: ' + titles[i]))
 
 plt.figure()
 for plot in control_plot:
 	plt.step(plot[0], plot[1], label=('Velocity: ' + str(plot[2]) + ' m/s'))
-plt.legend()
+# plt.legend()
 plt.grid()
 plt.xlabel('Time [sec]')
 plt.ylabel('Steering Torque [Nm]')
@@ -106,16 +112,24 @@ for index, v in enumerate(velocity):
 	tout, y, states = signal.lsim(sys_cl, np.zeros(1000), time_vector, X0=x0)
 	state_plot.append((tout, states, v))
 	control_plot.append((tout, -K@states.T, v))
+	print(poles)
+	print(K)
 
 
 plt.figure()
-for plot in state_plot:
-	plt.step(plot[0], np.rad2deg(plot[1][:,0]), label=('Velocity: ' + str(plot[2]) + ' m/s'))
-plt.legend()
-plt.grid()
-plt.xlabel('Time [sec]')
-plt.ylabel('Roll angle [deg]')
-plt.title('Pole Placement: States')
+ylabels = ['Angle [deg]', 'Angle [deg]', 'Angular Rate [deg/s]', 'Angular Rate [deg/s]']
+titles = ['Roll Angle', 'Steer Angle', 'Roll Rate', 'Steer Rate']
+for i in range(4):
+	plt.subplot(2,2,i+1)
+	for plot in state_plot:
+		plt.step(plot[0], np.rad2deg(plot[1][:,i]), label=('Velocity: ' + str(plot[2]) + ' m/s'))
+	plt.legend()
+	plt.grid()
+	if i==2 or i==3:
+		plt.xlabel('Time [sec]')
+	plt.ylabel(ylabels[i])
+	plt.title(('Pole Placement: ' + titles[i]))
+	# plt.xlim([0, 3])
 
 plt.figure()
 for plot in control_plot:
@@ -123,7 +137,9 @@ for plot in control_plot:
 plt.legend()
 plt.grid()
 plt.xlabel('Time [sec]')
-plt.ylabel('Steering Torque [Nm]')
+plt.ylabel('Steering Torque [N-m]')
 plt.title('Pole Placement: Control Input')
+# plt.xlim([0, 3])
+
 
 plt.show()

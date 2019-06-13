@@ -60,10 +60,12 @@ def simulate_kalman(A, B, C, D, K, dt, time,
 	return time, states, est_states, sensor_time, measurements, control_input
 
 
-def simulate(A, B, C, D, K, dt, time, noise=0, x0=None, x_ref=0):
+def simulate(A, B, C, D, K, dt, time, noise=0, x0=None, x_ref=None):
 	''' Simulate a continuous system with discrete sensors and controller '''
 
 	# Calculate the reference control input for the specified state target
+	if x_ref is None:
+		x_ref = np.zeros((1, A.shape[1]))
 	u_ref = calc_uref(A, B, K, x_ref)
 
 	if x0 is None:
@@ -184,7 +186,7 @@ def calc_poles(overshoot, natural_freq, num_poles):
 	poles.append((-zeta - np.sqrt(zeta**2 - 1 + 0j))*wn)
 
 	for idx in range(num_poles-2):
-		poles.append(-(idx+4)*wn)
+		poles.append(-(idx+2)*wn)
 
 	return poles
 
@@ -211,12 +213,15 @@ def calc_uref(A, B, K, x_ref):
 	if np.sum(np.abs(xref_sort[0:-1])) != 0:
 		print('There can only be 1 non-zero element in x_ref')
 
-	C = x_ref / np.max(x_ref)
-	if len(C.shape) == 1:
-		C = np.array([C])
-	D = np.zeros((1, B.shape[1]))
+	if np.max(x_ref)==0:
+		u_ref = 0
+	else:
+		C = x_ref / np.max(x_ref)
+		if len(C.shape) == 1:
+			C = np.array([C])
+		D = np.zeros((1, B.shape[1]))
 
-	Nbar = calc_Nbar(A, B, C, D, K)
-	u_ref = Nbar * np.max(x_ref)
+		Nbar = calc_Nbar(A, B, C, D, K)
+		u_ref = Nbar * np.max(x_ref)
 
 	return u_ref
