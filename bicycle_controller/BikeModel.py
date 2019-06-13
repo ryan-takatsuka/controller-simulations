@@ -1,6 +1,7 @@
 import numpy as np
 import control
 from scipy import signal
+from filterpy import common
 
 class BikeModel:
 	def __init__(self, M, C1, K0, K2, v=1.0):
@@ -42,6 +43,7 @@ class BikeModel:
 		''' Update the C matrix in the state space model '''
 
 		self.C = C_new
+		self.D = np.zeros((self.C.shape[0],1))
 		self.continuous_ss()
 
 	def update_D(self, D_new):
@@ -214,6 +216,27 @@ class BikeModel:
 		system = self.discrete_ss(dt)
 		tout, y, x = signal.dlsim(system, u, time, x0=x0)
 		return tout, x
+
+	def calc_process_noise(self, q_var, dt):
+		''' Calculate the process noise used in a Kalman filter '''
+
+		# For this model, the process noise consists of 2 2nd order
+		# white noise models.  These correspond to the 2nd
+		# order roll variable and the 2nd order steering angle
+
+		# Design the process noise matrix
+		Q = np.zeros((4,4))
+		q0 = common.Q_discrete_white_noise(dim=2, dt=dt, var=q_var)
+		Q[0,0] = q0[0,0]
+		Q[0,2] = q0[0,1]
+		Q[1,1] = q0[0,0]
+		Q[1,3] = q0[0,1]
+		Q[2,0] = q0[1,0]
+		Q[2,2] = q0[1,1]
+		Q[3,1] = q0[1,0]
+		Q[3,3] = q0[1,1]
+
+		return Q
 
 
 if __name__ == "__main__":
