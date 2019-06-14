@@ -27,7 +27,7 @@ time_vector = np.linspace(0, 10, 10000)  # time vector for sim
 x0 = np.array([[np.deg2rad(6), 0, 0, 0]]).T  # initial states
 dt = 1/60  # sampling time for the sensor
 velocity = 10  # velocity of the bike
-r_var = 1e-3
+r_var = 1e-2
 q_var = 1
 
 # Create the sensors
@@ -52,10 +52,6 @@ print(bike.D)
 # ----------------------------------------------------------------------
 # LQR controller design
 # ----------------------------------------------------------------------
-# Define controller parameters
-overshoot = 1  # [%]
-natural_freq = 0.1  # [Hz]
-
 # Create controller
 Q_c = np.eye(4)
 # Q_c[0,0] *= 100

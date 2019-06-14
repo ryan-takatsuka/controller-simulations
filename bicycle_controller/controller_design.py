@@ -47,7 +47,7 @@ def simulate_kalman(A, B, C, D, K, dt, time,
 			kf.predict(u=control_input[-1])
 			kf.update(measurements[-1])
 
-			# Add varaibles to list
+			# Add variables to list
 			est_states.append(kf.x)
 			control_input.append(-K@est_states[-1])
 			sensor_time.append(t)
