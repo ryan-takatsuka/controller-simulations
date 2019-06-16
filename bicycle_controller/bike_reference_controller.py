@@ -14,7 +14,7 @@ import bike_parameters
 np.set_printoptions(suppress=True, linewidth=200)
 
 # Parameters for the simulation
-dt = 1/600  # sampling time for the sensor
+dt = 1/10  # sampling time for the sensor
 velocity = 10  # velocity of the bike
 r_var = 1e-3
 q_var = 1
@@ -32,13 +32,14 @@ C = np.array([[0, 0, 1, 0],
 D = np.zeros(2)
 bike = BikeModel(params.M, params.C_1, params.K_0, params.K_2)
 bike.set_velocity(velocity)
-bike.update_C(C)
+# bike.update_C(C)
 
 # Create controller
 Q_c = np.eye(4)
 R_c = np.eye(1) * 0.001
+sys = bike.discrete_ss(dt)
+K, S, E = controller_design.dlqr(sys.A, sys.B, Q_c, R_c)
 sys = bike.continuous_ss()
-K, S, E = controller_design.lqr(sys.A, sys.B, Q_c, R_c)
 
 # Simulate sensor data
 time_vector = np.linspace(0, 10, 10000)  # time vector for sim
@@ -52,9 +53,9 @@ x_ref = np.array([0, steering_angle_ref, 0, 0])
 time, states, sensor_time, measurements, control_input = controller_design.simulate(sys.A, sys.B, sys.C, sys.D, K, dt, time_vector, x_ref=x_ref)
 print(np.rad2deg(steering_angle_ref))
 
-yaw_rate = velocity / bike_parameters.w * states[:,1] * np.cos(bike_parameters.lamda)
+yaw_rate = velocity / bike_parameters.w * measurements[:,1] * np.cos(bike_parameters.lamda)
 plt.figure()
-plt.plot(time, np.rad2deg(yaw_rate))
+plt.step(sensor_time, np.rad2deg(yaw_rate))
 plt.plot(sensor_time, np.ones(len(sensor_time)), 'r--')
 plt.grid()
 plt.xlabel('Time [sec]')
@@ -62,7 +63,7 @@ plt.ylabel('Angular Velocity [deg/sec]')
 plt.title('Yaw rate')
 
 plt.figure()
-plt.plot(sensor_time, control_input)
+plt.step(sensor_time, control_input)
 plt.grid()
 plt.xlabel('Time [sec]')
 plt.ylabel('Steering Torque [N-m]')

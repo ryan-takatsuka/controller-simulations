@@ -6,7 +6,7 @@ from filterpy.kalman import KalmanFilter
 from filterpy import common
 
 def simulate_kalman(A, B, C, D, K, dt, time, 
-					r_var, q_var, noise=0, x0=None,
+					r_var, q_var, x0=None,
 					sensors=None, Q=None, x_ref=None):
 	''' Simulate a continuous system with discrete sensors and controller '''
 
@@ -27,7 +27,7 @@ def simulate_kalman(A, B, C, D, K, dt, time,
 	kf.Q = common.Q_discrete_white_noise(dim=dim_x, dt=dt, var=q_var)
 	if Q is not None:
 		kf.Q = Q
-	kf.P *= 1000
+	kf.P *= 100
 
 	sensor_time = [0]
 	states = [x0]
@@ -80,7 +80,7 @@ def simulate(A, B, C, D, K, dt, time, noise=0, x0=None, x_ref=None):
 		states.append(states[-1] + states_dot*(t-time[idx]))
 
 		if (t-sensor_time[-1])>=dt:
-			measurements.append(states[-1] + np.random.randn()*noise)
+			measurements.append(states[-1] + np.array([np.random.randn(4)]).T*noise)
 			# print(measurements[-1])
 			control_input.append(u_ref-K@(measurements[-1]))
 			sensor_time.append(t)
